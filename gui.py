@@ -243,22 +243,40 @@ def _run_analysis():
         action_map = {"buy": "买入", "sell": "卖出", "hold": "观望"}
         trend_en = result.get("trend", "neutral")
         trend_map = {"bullish": "看涨", "bearish": "看跌", "neutral": "震荡"}
+
+        # ── 概览 ──
         _log("")
-        _log(f"  ◆ 决策: {action_map.get(action_en, action_en)}")
-        _log(f"  ◆ 趋势: {trend_map.get(trend_en, trend_en)}")
-        _log(f"  ◆ 置信度: {result.get('confidence', 'N/A')}")
-        _log(f"  ◆ 当前价: {factor['price']}")
-        if result.get("entry_zone"):
-            _log(f"  ◆ 买入区间: {result['entry_zone']}")
-        if result.get("exit_zone"):
-            _log(f"  ◆ 卖出区间: {result['exit_zone']}")
-        if result.get("position_ratio"):
-            _log(f"  ◆ 仓位建议: {result['position_ratio']}")
-        _log(f"  ◆ 止损: {result.get('stop_loss_price')}  止盈: {result.get('take_profit_price')}")
+        _log("┌─ 决策概览")
+        _log(f"│  方向: {action_map.get(action_en, action_en)}　趋势: {trend_map.get(trend_en, trend_en)}　置信度: {result.get('confidence', 'N/A')}　当前价: {factor['price']}")
+
+        # ── 操作区间 ──
+        if result.get("entry_zone") or result.get("exit_zone") or result.get("position_ratio"):
+            _log("├─ 操作建议")
+            if result.get("entry_zone"):
+                _log(f"│  买入区间: {result['entry_zone']}")
+            if result.get("exit_zone"):
+                _log(f"│  卖出区间: {result['exit_zone']}")
+            if result.get("position_ratio"):
+                _log(f"│  仓位建议: {result['position_ratio']}")
+
+        # ── 风控 ──
+        _log("├─ 风控参数")
+        _log(f"│  止损: {result.get('stop_loss_price')}　止盈: {result.get('take_profit_price')}")
+
+        # ── 依据（多行） ──
         if result.get("reasoning"):
-            _log(f"  ◆ 依据: {result['reasoning']}")
+            _log("├─ 决策依据")
+            for line in result["reasoning"].replace("\r", "").split("\n"):
+                line = line.strip()
+                if line:
+                    _log(f"│  {line}")
+
+        # ── 总建议 ──
         if result.get("position_advice"):
-            _log(f"  ◆ 建议: {result['position_advice']}")
+            _log("└─ " + result["position_advice"])
+        else:
+            _log("└─" + "─" * 3)
+
         _log("─" * 40)
 
     except Exception as e:
