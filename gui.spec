@@ -7,7 +7,7 @@ a = Analysis(
         ('config/settings.json', 'config'),
         ('backend', 'backend'),
     ],
-    hiddenimports=['pandas', 'numpy', 'baostock', 'easytrader', 'pywinauto'],
+    hiddenimports=['pandas', 'numpy', 'baostock', 'easytrader', 'pywinauto', 'win32api', 'win32com', 'win32con', 'win32gui'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
