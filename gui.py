@@ -248,10 +248,17 @@ def _run_analysis():
         _log(f"  ◆ 趋势: {trend_map.get(trend_en, trend_en)}")
         _log(f"  ◆ 置信度: {result.get('confidence', 'N/A')}")
         _log(f"  ◆ 当前价: {factor['price']}")
-        _log(f"  ◆ 支撑: {result.get('support_price')}  压力: {result.get('resistance_price')}")
+        if result.get("entry_zone"):
+            _log(f"  ◆ 买入区间: {result['entry_zone']}")
+        if result.get("exit_zone"):
+            _log(f"  ◆ 卖出区间: {result['exit_zone']}")
+        if result.get("position_ratio"):
+            _log(f"  ◆ 仓位建议: {result['position_ratio']}")
         _log(f"  ◆ 止损: {result.get('stop_loss_price')}  止盈: {result.get('take_profit_price')}")
+        if result.get("reasoning"):
+            _log(f"  ◆ 依据: {result['reasoning']}")
         if result.get("position_advice"):
-            _log(f"  ◆ 持仓建议: {result['position_advice']}")
+            _log(f"  ◆ 建议: {result['position_advice']}")
         _log("─" * 40)
 
     except Exception as e:
