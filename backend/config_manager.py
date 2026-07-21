@@ -26,7 +26,7 @@ CONFIG_FILE = os.path.join(CONFIG_DIR, "settings.json")
 def _read() -> dict:
     if not os.path.exists(CONFIG_FILE):
         return {}
-    with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+    with open(CONFIG_FILE, "r", encoding="utf-8-sig") as f:
         return json.load(f)
 
 
