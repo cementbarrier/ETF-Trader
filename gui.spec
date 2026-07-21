@@ -7,11 +7,11 @@ a = Analysis(
         ('config/settings.json', 'config'),
         ('backend', 'backend'),
     ],
-    hiddenimports=['pandas', 'numpy', 'baostock', 'easytrader', 'pywinauto', 'win32api', 'win32com', 'win32con', 'win32gui'],
+    hiddenimports=['pandas', 'numpy', 'baostock', 'easytrader', 'pywinauto', 'win32api', 'win32com', 'win32con', 'win32gui', 'PIL', 'PIL.Image', 'PIL.ImageGrab'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=['matplotlib', 'scipy', 'PIL', 'tkinter.test'],
+    excludes=['matplotlib', 'scipy', 'tkinter.test'],
     noarchive=False,
     optimize=0,
 )
