@@ -78,7 +78,7 @@ def decide(
     symbol: str,
     factor_result: dict,
     sentiment: str = "",
-    period: str = None,
+    days: int = 60,
     risk_profile: str = None,
     positions_text: str = "",
     balance_text: str = "",
@@ -98,13 +98,10 @@ def decide(
     ind = factor_result.get("indicators", {})
     sr = factor_result.get("support_resistance", {})
 
-    period_labels = {"short": "短线模式(60分钟趋势+30分钟操作)", "long": "长线模式(周线趋势+日线操作)"}
-    risk_labels = {"conservative": "保守", "standard": "标准", "aggressive": "激进"}
-
     prompt = _PROMPT_TEMPLATE.format(
         symbol=symbol,
-        period_label=period_labels.get(period or "short", "短线模式"),
-        risk_label=risk_labels.get(risk_profile, "标准"),
+        period_label=f"{days}天周期",
+        risk_label={"conservative": "保守", "standard": "标准", "aggressive": "激进"}.get(risk_profile, "标准"),
         price=price,
         trend=trend,
         signals=signals,

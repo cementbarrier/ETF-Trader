@@ -172,14 +172,14 @@ def _run_analysis():
     btn.config(state="disabled", text="分析中...")
 
     symbol = etf_var.get().strip()
-    period = period_var.get()
+    days = days_var.get()
     risk = risk_var.get()
     use_positions = pos_var.get() == "1"
 
     _save_api_key()
 
     try:
-        _log(f"=== {symbol} {period} {risk} ===")
+        _log(f"=== {symbol} {days}天 {risk} ===")
 
         # 持仓 + 资金
         positions = []
@@ -214,7 +214,7 @@ def _run_analysis():
 
         _log("[1/3] 获取行情...")
 
-        max_bars = get_setting("max_bars", 200)
+        max_bars = max(days, 30)
         df = fetch_etf_daily(symbol, count=max_bars)
         if df is None or df.empty:
             _log(f"错误: 无法获取 {symbol} 行情数据")
@@ -233,7 +233,7 @@ def _run_analysis():
         # 格式化持仓和资金为 prompt 文本
         pos_text = format_positions_for_prompt(positions) if positions else ""
         bal_text = format_balance_for_prompt(account_balance) if account_balance else ""
-        result = decide(symbol, factor, period=period, risk_profile=risk, positions_text=pos_text, balance_text=bal_text)
+        result = decide(symbol, factor, days=days, risk_profile=risk, positions_text=pos_text, balance_text=bal_text)
 
         if "error" in result:
             _log(f"错误: {result['error']}")
@@ -327,10 +327,10 @@ etf_var = tk.StringVar(value=get_setting("default_etf", "510050"))
 etf_entry = ttk.Entry(top, textvariable=etf_var, width=10)
 etf_entry.grid(row=1, column=1, sticky="w", pady=(8, 0))
 
-ttk.Label(top, text="周期:").grid(row=1, column=2, sticky="w", padx=(15, 5), pady=(8, 0))
-period_var = tk.StringVar(value=get_setting("default_period", "short"))
-period_cb = ttk.Combobox(top, textvariable=period_var, values=["short", "long"], state="readonly", width=8)
-period_cb.grid(row=1, column=3, sticky="w", pady=(8, 0))
+ttk.Label(top, text="天数:").grid(row=1, column=2, sticky="w", padx=(15, 5), pady=(8, 0))
+days_var = tk.IntVar(value=int(get_setting("default_days", 60)))
+days_sb = ttk.Spinbox(top, textvariable=days_var, from_=1, to=365, width=6)
+days_sb.grid(row=1, column=3, sticky="w", pady=(8, 0))
 
 ttk.Label(top, text="档位:").grid(row=1, column=4, sticky="w", padx=(15, 5), pady=(8, 0))
 risk_var = tk.StringVar(value=get_setting("risk_profile", "standard"))
