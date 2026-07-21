@@ -5,15 +5,42 @@ from typing import Optional
 import pandas as pd
 
 
+def _patch_requests_no_proxy():
+    """强制 requests 直连，绕过系统代理"""
+    import requests
+    import os
+
+    # 清除环境变量中的代理
+    for k in list(os.environ):
+        if k.upper().endswith('_PROXY') or k.upper() == 'NO_PROXY':
+            os.environ.pop(k, None)
+
+    # Monkey-patch Session.request，强制 proxies=None
+    _orig_request = requests.Session.request
+
+    def _request(self, method, url, **kwargs):
+        self.trust_env = False
+        kwargs["proxies"] = None
+        return _orig_request(self, method, url, **kwargs)
+
+    requests.Session.request = _request
+
+
+def _ak_daily(symbol: str):
+    _patch_requests_no_proxy()
+    import akshare as ak
+    return ak.fund_etf_hist_em(symbol=symbol, period="daily", adjust="qfq")
+
+
+def _ak_minute(symbol: str, period: str):
+    _patch_requests_no_proxy()
+    import akshare as ak
+    return ak.fund_etf_hist_em(symbol=symbol, period=period, adjust="qfq")
+
+
 def fetch_etf_daily(symbol: str, count: int = 200) -> Optional[pd.DataFrame]:
-    """
-    获取 ETF 日线 K 线数据。
-    返回 DataFrame，包含列: date, open, high, low, close, volume
-    """
     try:
-        import akshare as ak
-        # akshare 基金 ETF 历史行情
-        df = ak.fund_etf_hist_em(symbol=symbol, period="daily", adjust="qfq")
+        df = _ak_daily(symbol)
         if df.empty:
             return None
         df = df.rename(columns={
@@ -22,7 +49,6 @@ def fetch_etf_daily(symbol: str, count: int = 200) -> Optional[pd.DataFrame]:
         })
         df["date"] = pd.to_datetime(df["date"])
         df = df.sort_values("date").tail(count).reset_index(drop=True)
-        # 确保数值列类型正确
         for col in ["open", "high", "low", "close"]:
             df[col] = pd.to_numeric(df[col], errors="coerce")
         df["volume"] = pd.to_numeric(df.get("volume", 0), errors="coerce")
@@ -34,13 +60,8 @@ def fetch_etf_daily(symbol: str, count: int = 200) -> Optional[pd.DataFrame]:
 
 
 def fetch_etf_minute(symbol: str, period: str = "60", count: int = 200) -> Optional[pd.DataFrame]:
-    """
-    获取 ETF 分钟级 K 线。
-    period: '60' 或 '30'
-    """
     try:
-        import akshare as ak
-        df = ak.fund_etf_hist_em(symbol=symbol, period=period, adjust="qfq")
+        df = _ak_minute(symbol, period)
         if df.empty:
             return None
         df = df.rename(columns={

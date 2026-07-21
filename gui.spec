@@ -6,6 +6,7 @@ a = Analysis(
     datas=[
         ('config/settings.json', 'config'),
         ('backend', 'backend'),
+        (r'D:\Program Files\Tencent\Marvis\MarvisAgent\1.0.1100.349\runtime\python311\Lib\site-packages\akshare\file_fold', 'akshare/file_fold'),
     ],
     hiddenimports=['pandas', 'numpy', 'requests', 'urllib3', 'charset_normalizer', 'certifi', 'idna'],
     hookspath=[],
