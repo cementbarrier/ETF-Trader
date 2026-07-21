@@ -266,10 +266,15 @@ def _run_analysis():
         # ── 依据（多行） ──
         if result.get("reasoning"):
             _log("├─ 决策依据")
-            for line in result["reasoning"].replace("\r", "").split("\n"):
-                line = line.strip()
-                if line:
-                    _log(f"│  {line}")
+            raw = result["reasoning"].replace("\r", "")
+            lines = [l.strip() for l in raw.split("\n") if l.strip()]
+            # 如果只有一行且包含编号模式（1. 2. 或 - 开头），智能拆分
+            if len(lines) == 1:
+                import re
+                parts = re.split(r'(?<!\d)(?=\d+\.\s|-\s)', lines[0])
+                lines = [p.strip() for p in parts if p.strip()]
+            for line in lines:
+                _log(f"│  {line}")
 
         # ── 总建议 ──
         if result.get("position_advice"):
