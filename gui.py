@@ -17,7 +17,7 @@ from backend.config_manager import get_setting, set_setting, get_risk_params
 from backend.data_fetcher import fetch_etf_daily
 from backend.factor_engine import run_factor_pipeline
 from backend.llm_decision import decide
-from backend.position_fetcher import get_positions_from_ths, format_positions_for_prompt
+from backend.position_fetcher import get_account_snapshot, format_positions_for_prompt, format_balance_for_prompt
 
 
 def _log(msg: str):
@@ -67,17 +67,8 @@ def _read_positions_from_ths():
     ttk.Label(frame, textvariable=detail_var, foreground="gray").pack(pady=(8, 0))
 
     def _do():
-        # 阶段指示
-        steps = [
-            ("加载 easytrader...", 0.5),
-            ("连接同花顺客户端...", 2.0),
-            ("读取持仓数据...", 1.0),
-            ("解析数据...", 0.5),
-        ]
-        for msg, _delay in steps:
-            root.after(0, lambda m=msg: detail_var.set(m))
-
-        result = get_positions_from_ths()
+        root.after(0, lambda: detail_var.set("连接同花顺，读取持仓与资金..."))
+        result = get_account_snapshot()
         root.after(0, lambda: _on_done(result, popup))
 
     threading.Thread(target=_do, daemon=True).start()
@@ -94,13 +85,37 @@ def _on_done(result: dict, popup: tk.Toplevel):
         status.config(text="读取持仓失败")
         return
 
-    data = result.get("data", [])
-    if not data:
-        messagebox.showinfo("提示", "未读取到任何持仓数据。\n请确认同花顺账户中确实持有股票/基金。")
-        status.config(text="未读取到持仓，请手动输入")
-        return
+    positions = result.get("positions", [])
+    balance = result.get("balance", {})
 
-    _fill_positions(data)
+    # 填入持仓
+    if positions:
+        _fill_positions(positions)
+
+    # 显示资金
+    if balance:
+        avail = balance.get("available", 0)
+        total = balance.get("total_asset", 0)
+        bal_var.set(f"{avail:.2f}" if avail else "")
+        total_var.set(f"{total:.2f}" if total else "")
+
+        parts = []
+        if avail:
+            parts.append(f"可用资金 {avail:.2f}")
+        if total:
+            parts.append(f"总资产 {total:.2f}")
+        msg = "、".join(parts)
+        if positions:
+            status.config(text=f"已读取 {len(positions)} 条持仓 | {msg}")
+        else:
+            status.config(text=f"空仓 | {msg}")
+            messagebox.showinfo("读取结果", f"未持有任何仓位。\n{msg}")
+    else:
+        if positions:
+            status.config(text=f"已读取 {len(positions)} 条持仓")
+        else:
+            messagebox.showinfo("提示", "未读取到任何持仓数据。\n请确认同花顺账户中确实持有股票/基金。")
+            status.config(text="未读取到持仓，请手动输入")
 
 
 def _fill_positions(positions: list):
@@ -118,8 +133,10 @@ def _fill_positions(positions: list):
     status.config(text=f"已读取 {len(positions)} 条持仓")
 
 
-def _get_manual_positions() -> list[dict]:
-    """从 GUI 输入框获取手动输入持仓"""
+def _get_manual_account() -> tuple[list[dict], dict]:
+    """从 GUI 输入框获取手动输入的持仓和资金。
+    返回 (positions, balance)
+    """
     positions = []
     for row_vars in pos_rows:
         code = row_vars[0].get().strip()
@@ -133,7 +150,22 @@ def _get_manual_positions() -> list[dict]:
         if qty <= 0:
             continue
         positions.append({"code": code, "cost": cost, "qty": qty, "name": ""})
-    return positions
+
+    balance = {}
+    try:
+        v = bal_var.get().strip()
+        if v:
+            balance["available"] = float(v)
+    except ValueError:
+        pass
+    try:
+        v = total_var.get().strip()
+        if v:
+            balance["total_asset"] = float(v)
+    except ValueError:
+        pass
+
+    return positions, balance
 
 
 def _run_analysis():
@@ -149,21 +181,36 @@ def _run_analysis():
     try:
         _log(f"=== {symbol} {period} {risk} ===")
 
-        # 持仓
+        # 持仓 + 资金
         positions = []
+        account_balance = {}
         if use_positions:
-            positions = _get_manual_positions()
-            if not positions:
-                _log("[持仓] 尝试从同花顺自动读取...")
-                result = get_positions_from_ths()
+            positions, account_balance = _get_manual_account()
+            if not positions and not account_balance:
+                _log("[账户] 尝试从同花顺自动读取...")
+                result = get_account_snapshot()
                 if result.get("success"):
-                    positions = result.get("data", [])
+                    positions = result.get("positions", [])
+                    account_balance = result.get("balance", {})
                 else:
-                    _log(f"[持仓] 读取失败: {result.get('error', '')}")
+                    _log(f"[账户] 读取失败: {result.get('error', '')}")
             if positions:
                 _log(f"[持仓] 共 {len(positions)} 条: {', '.join(p['code'] for p in positions)}")
             else:
-                _log("[持仓] 无持仓数据，将仅基于行情分析")
+                _log("[持仓] 空仓")
+            if account_balance:
+                avail = account_balance.get("available")
+                total = account_balance.get("total_asset")
+                parts = []
+                if avail:
+                    parts.append(f"可用 {avail:.2f}")
+                if total:
+                    parts.append(f"总资产 {total:.2f}")
+                _log(f"[资金] {', '.join(parts)}")
+            else:
+                _log("[资金] 无数据，将仅基于行情分析")
+        else:
+            _log("[账户] 未纳入决策，仅基于行情分析")
 
         _log("[1/3] 获取行情...")
 
@@ -183,18 +230,22 @@ def _run_analysis():
 
         _log("[3/3] LLM 决策...")
 
-        # 格式化持仓为 prompt 文本
+        # 格式化持仓和资金为 prompt 文本
         pos_text = format_positions_for_prompt(positions) if positions else ""
-        result = decide(symbol, factor, period=period, risk_profile=risk, positions_text=pos_text)
+        bal_text = format_balance_for_prompt(account_balance) if account_balance else ""
+        result = decide(symbol, factor, period=period, risk_profile=risk, positions_text=pos_text, balance_text=bal_text)
 
         if "error" in result:
             _log(f"错误: {result['error']}")
             return
 
-        action = result.get("action", "hold").upper()
+        action_en = result.get("action", "hold")
+        action_map = {"buy": "买入", "sell": "卖出", "hold": "观望"}
+        trend_en = result.get("trend", "neutral")
+        trend_map = {"bullish": "看涨", "bearish": "看跌", "neutral": "震荡"}
         _log("")
-        _log(f"  ◆ 决策: {action}")
-        _log(f"  ◆ 趋势: {result.get('trend', 'N/A')}")
+        _log(f"  ◆ 决策: {action_map.get(action_en, action_en)}")
+        _log(f"  ◆ 趋势: {trend_map.get(trend_en, trend_en)}")
         _log(f"  ◆ 置信度: {result.get('confidence', 'N/A')}")
         _log(f"  ◆ 当前价: {factor['price']}")
         _log(f"  ◆ 支撑: {result.get('support_price')}  压力: {result.get('resistance_price')}")
@@ -225,6 +276,9 @@ root = tk.Tk()
 root.title("ETF 交易决策")
 root.geometry("700x750")
 root.resizable(True, True)
+
+bal_var = tk.StringVar()
+total_var = tk.StringVar()
 
 top = ttk.Frame(root, padding=10)
 top.pack(fill="x")
@@ -295,6 +349,15 @@ for i in range(4):
     ttk.Entry(row_frame, textvariable=cost_var, width=12).grid(row=0, column=1, padx=(0, 4))
     ttk.Entry(row_frame, textvariable=qty_var, width=16).grid(row=0, column=2)
     pos_rows.append((code_var, cost_var, qty_var))
+
+# 资金输入行
+bal_row = ttk.Frame(pos_frame)
+bal_row.pack(fill="x", pady=(8, 0))
+ttk.Label(bal_row, text="可用资金:").pack(side="left")
+ttk.Entry(bal_row, textvariable=bal_var, width=14).pack(side="left", padx=(5, 0))
+ttk.Label(bal_row, text="总资产:").pack(side="left", padx=(20, 0))
+ttk.Entry(bal_row, textvariable=total_var, width=14).pack(side="left", padx=(5, 0))
+ttk.Label(bal_row, text='（手动填写或点击"从同花顺读取"自动获取）', foreground="gray").pack(side="left", padx=(10, 0))
 
 # 输出区
 output = scrolledtext.ScrolledText(root, font=("Consolas", 10), wrap="word", state="normal")

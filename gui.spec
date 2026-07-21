@@ -1,17 +1,16 @@
 # -*- mode: python ; coding: utf-8 -*-
+
+
 a = Analysis(
     ['gui.py'],
-    pathex=[r'E:\etf-trader'],
+    pathex=[],
     binaries=[],
-    datas=[
-        ('config/settings.json', 'config'),
-        ('backend', 'backend'),
-    ],
-    hiddenimports=['pandas', 'numpy', 'baostock', 'easytrader', 'pywinauto', 'win32api', 'win32com', 'win32con', 'win32gui', 'PIL', 'PIL.Image', 'PIL.ImageGrab'],
+    datas=[('config', 'config'), ('backend', 'backend')],
+    hiddenimports=['easytrader', 'pywinauto', 'pandas', 'requests', 'baostock', 'numpy', 'win32api', 'win32com', 'win32con', 'win32gui', 'PIL', 'PIL.Image', 'PIL.ImageGrab'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=['matplotlib', 'scipy', 'tkinter.test'],
+    excludes=[],
     noarchive=False,
     optimize=0,
 )
@@ -23,7 +22,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='etf-trader',
+    name='gui',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
