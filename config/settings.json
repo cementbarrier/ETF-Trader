@@ -32,5 +32,6 @@
   "signal_consensus_required": true,
   "default_etf": "510050",
   "default_period": "short",
-  "max_bars": 200
+  "max_bars": 200,
+  "ths_xiadan_path": "D:\\tonghuangshunYuanHang\\同花顺远航版\\transaction\\xiadan.exe"
 }
