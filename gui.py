@@ -20,6 +20,28 @@ from backend.llm_decision import decide
 from backend.position_fetcher import get_account_snapshot, format_positions_for_prompt, format_balance_for_prompt
 
 
+def _load_sentiment() -> str:
+    """加载最新板块舆情总结，用于 LLM 决策的外部情绪参考"""
+    import glob
+    from datetime import date
+    today = date.today().isoformat()
+    summary_dir = Path("E:/video2txt")
+    if not summary_dir.exists():
+        return ""
+    # 优先当天，其次最新
+    candidates = sorted(summary_dir.glob("批次总结_*.txt"), reverse=True)
+    if not candidates:
+        return ""
+    for f in candidates:
+        try:
+            text = f.read_text(encoding="utf-8").strip()
+            if text:
+                return text
+        except Exception:
+            continue
+    return ""
+
+
 def _log(msg: str):
     if hasattr(_log, "widget") and _log.widget:
         _log.widget.insert(tk.END, msg + "\n")
@@ -228,12 +250,19 @@ def _run_analysis():
         _log(f"  价格: {factor['price']}  趋势: {factor['trend']}")
         _log(f"  信号: {', '.join(factor['signals']) or '无'}")
 
+        # 加载板块舆情
+        sentiment = _load_sentiment()
+        if sentiment:
+            _log(f"  板块舆情: 已加载 ({len(sentiment)} 字)")
+        else:
+            _log("  板块舆情: 无外部数据，纯技术面分析")
+
         _log("[3/3] LLM 决策...")
 
         # 格式化持仓和资金为 prompt 文本
         pos_text = format_positions_for_prompt(positions) if positions else ""
         bal_text = format_balance_for_prompt(account_balance) if account_balance else ""
-        result = decide(symbol, factor, days=days, risk_profile=risk, positions_text=pos_text, balance_text=bal_text)
+        result = decide(symbol, factor, days=days, risk_profile=risk, positions_text=pos_text, balance_text=bal_text, sentiment=sentiment)
 
         if "error" in result:
             _log(f"错误: {result['error']}")
