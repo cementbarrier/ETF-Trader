@@ -1,5 +1,5 @@
 """
-行情数据获取：baostock ETF 历史 K 线
+行情数据获取：baostock ETF 历史 K 线 + akshare 实时行情补充
 """
 from typing import Optional
 from datetime import datetime, timedelta
@@ -23,16 +23,38 @@ def _symbol_to_code(symbol: str) -> str:
         return f"sz.{s}"
 
 
+def _fetch_realtime_spot(symbol: str) -> Optional[dict]:
+    """用 akshare 获取 ETF 实时行情，返回 {open,high,low,close,volume,date} 或 None"""
+    try:
+        import akshare as ak
+        df = ak.fund_etf_spot_em()
+        row = df[df['代码'] == symbol.strip()]
+        if row.empty:
+            return None
+        r = row.iloc[0]
+        today = datetime.now().strftime('%Y-%m-%d')
+        return {
+            'date': today,
+            'open': float(r['开盘价']),
+            'high': float(r['最高价']),
+            'low': float(r['最低价']),
+            'close': float(r['最新价']),
+            'volume': int(r['成交量']),
+        }
+    except Exception:
+        return None
+
+
 def fetch_etf_daily(symbol: str, count: int = 200) -> Optional[pd.DataFrame]:
-    """获取 ETF 日 K 线，返回最近 count 条"""
+    """获取 ETF 日 K 线（含今日实时行情），返回最近 count 条"""
     _ensure_login()
     code = _symbol_to_code(symbol)
-    end = datetime.now().strftime("%Y-%m-%d")
+    today = datetime.now().strftime("%Y-%m-%d")
     start = (datetime.now() - timedelta(days=count * 2)).strftime("%Y-%m-%d")
 
     rs = bs.query_history_k_data_plus(
         code, "date,open,high,low,close,volume",
-        start_date=start, end_date=end,
+        start_date=start, end_date=today,
         frequency="d", adjustflag="2"
     )
     if rs.error_code != '0':
@@ -47,10 +69,20 @@ def fetch_etf_daily(symbol: str, count: int = 200) -> Optional[pd.DataFrame]:
 
     df = pd.DataFrame(rows, columns=["date", "open", "high", "low", "close", "volume"])
     df["date"] = pd.to_datetime(df["date"])
-    df = df.sort_values("date").tail(count).reset_index(drop=True)
     for col in ["open", "high", "low", "close"]:
         df[col] = pd.to_numeric(df[col], errors="coerce")
     df["volume"] = pd.to_numeric(df.get("volume", 0), errors="coerce")
+
+    # 检查最新数据是否含今日，无则用 akshare 实时行情补充
+    last_date = df["date"].max()
+    if last_date.strftime("%Y-%m-%d") != today:
+        spot = _fetch_realtime_spot(symbol)
+        if spot and spot['close'] > 0:
+            new_row = pd.DataFrame([spot])
+            new_row["date"] = pd.to_datetime(new_row["date"])
+            df = pd.concat([df, new_row], ignore_index=True)
+
+    df = df.sort_values("date").tail(count).reset_index(drop=True)
     return df.dropna(subset=["close"])
 
 
