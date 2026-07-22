@@ -3,3 +3,14 @@ dist/
 __pycache__/
 *.pyc
 *.spec.bak
+build*.txt
+build*.log
+pyi*.log
+*.log
+debug_*.log
+stdout.txt
+stderr.txt
+output/
+*.lnk
+.vscode/
+.idea/
