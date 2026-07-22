@@ -8,7 +8,12 @@ a = Analysis(
     datas=[
         ('D:/Program Files/Tencent/Marvis/MarvisAgent/1.0.1100.349/runtime/python311/Lib/site-packages/akshare/file_fold', 'akshare/file_fold'),
     ],
-    hiddenimports=['easytrader', 'pywinauto', 'win32api', 'PIL', 'baostock', 'akshare'],
+    hiddenimports=[
+        'easytrader', 'pywinauto', 'win32api', 'baostock', 'akshare',
+        'PIL', 'PIL.Image', 'PIL.ImageDraw',
+        'pystray', 'pystray._win32', 'pystray._base',
+        'threading', 'queue',
+    ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
