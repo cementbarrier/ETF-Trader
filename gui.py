@@ -21,27 +21,23 @@ from backend.position_fetcher import get_account_snapshot, format_positions_for_
 
 
 def _load_sentiment() -> str:
-    """加载最新板块舆情总结，用于 LLM 决策的外部情绪参考"""
-    from datetime import date
-    today = date.today().isoformat()
-    summary_dir = get_setting("sentiment_dir", "E:/video2txt")
-    if not summary_dir:
+    """加载板块舆情总结文件，用于 LLM 决策的外部情绪参考"""
+    file_path = get_setting("sentiment_dir", "E:/video2txt")
+    if not file_path:
         return ""
-    p = Path(summary_dir)
-    if not p.exists():
+    p = Path(file_path)
+    # 若是目录则回退旧逻辑：glob 最新的批次总结
+    if p.is_dir():
+        candidates = sorted(p.glob("批次总结_*.txt"), reverse=True)
+        if not candidates:
+            return ""
+        p = candidates[0]
+    if not p.exists() or not p.is_file():
         return ""
-    # 优先当天，其次最新
-    candidates = sorted(p.glob("批次总结_*.txt"), reverse=True)
-    if not candidates:
+    try:
+        return p.read_text(encoding="utf-8").strip()
+    except Exception:
         return ""
-    for f in candidates:
-        try:
-            text = f.read_text(encoding="utf-8").strip()
-            if text:
-                return text
-        except Exception:
-            continue
-    return ""
 
 
 def _log(msg: str):
@@ -371,8 +367,8 @@ risk_cb.grid(row=1, column=5, sticky="w", pady=(8, 0))
 btn = ttk.Button(top, text="开始分析", command=on_run)
 btn.grid(row=1, column=6, padx=(15, 0), sticky="w", pady=(8, 0))
 
-# Row 2: 舆情目录
-ttk.Label(top, text="舆情目录:").grid(row=2, column=0, sticky="w", padx=(0, 5), pady=(6, 0))
+# Row 2: 舆情文件
+ttk.Label(top, text="舆情文件:").grid(row=2, column=0, sticky="w", padx=(0, 5), pady=(6, 0))
 sent_var = tk.StringVar(value=get_setting("sentiment_dir", "E:/video2txt"))
 sent_frame = ttk.Frame(top)
 sent_frame.grid(row=2, column=1, columnspan=6, sticky="ew", pady=(6, 0))
@@ -382,14 +378,18 @@ sent_entry.bind("<FocusOut>", lambda e: set_setting("sentiment_dir", sent_var.ge
 sent_entry.bind("<Return>", lambda e: set_setting("sentiment_dir", sent_var.get().strip()))
 
 
-def _browse_sentiment_dir():
-    d = filedialog.askdirectory(initialdir=sent_var.get() or "E:/")
-    if d:
-        sent_var.set(d)
-        set_setting("sentiment_dir", d)
+def _browse_sentiment_file():
+    f = filedialog.askopenfilename(
+        initialdir=str(Path(sent_var.get()).parent) if sent_var.get() else "E:/",
+        title="选择舆情总结文件",
+        filetypes=[("文本文件", "*.txt"), ("所有文件", "*.*")],
+    )
+    if f:
+        sent_var.set(f)
+        set_setting("sentiment_dir", f)
 
 
-sent_btn = ttk.Button(sent_frame, text="浏览...", command=_browse_sentiment_dir, width=6)
+sent_btn = ttk.Button(sent_frame, text="浏览...", command=_browse_sentiment_file, width=6)
 sent_btn.pack(side="left", padx=(5, 0))
 
 # ── 持仓区 ──
