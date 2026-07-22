@@ -575,11 +575,30 @@ risk_cb.grid(row=1, column=5, sticky="w", pady=(8, 0))
 btn = ttk.Button(top, text="开始分析", command=on_run)
 btn.grid(row=1, column=6, padx=(15, 0), sticky="w", pady=(8, 0))
 
-# Row 2: 舆情文件
-ttk.Label(top, text="舆情文件:").grid(row=2, column=0, sticky="w", padx=(0, 5), pady=(6, 0))
+# Row 2: 数据源
+ttk.Label(top, text="数据源:").grid(row=2, column=0, sticky="w", padx=(0, 5), pady=(6, 0))
+
+def _save_data_source(*_):
+    src = src_var.get().strip()
+    set_setting("data_source", src)
+
+src_var = tk.StringVar(value=get_setting("data_source", "baostock"))
+src_cb = ttk.Combobox(top, textvariable=src_var, values=["baostock", "akshare"], state="readonly", width=12)
+src_cb.grid(row=2, column=1, sticky="w", pady=(6, 0))
+src_cb.bind("<<ComboboxSelected>>", _save_data_source)
+
+ttk.Label(top, text="Token:").grid(row=2, column=2, sticky="w", padx=(15, 5), pady=(6, 0))
+token_var = tk.StringVar(value=get_setting("data_source_token", ""))
+token_entry = ttk.Entry(top, textvariable=token_var, width=20, show="*")
+token_entry.grid(row=2, column=3, sticky="w", pady=(6, 0))
+token_entry.bind("<FocusOut>", lambda e: set_setting("data_source_token", token_var.get().strip()))
+token_entry.bind("<Return>", lambda e: set_setting("data_source_token", token_var.get().strip()))
+
+# Row 3: 舆情文件
+ttk.Label(top, text="舆情文件:").grid(row=3, column=0, sticky="w", padx=(0, 5), pady=(6, 0))
 sent_var = tk.StringVar(value=get_setting("sentiment_dir", "E:/video2txt"))
 sent_frame = ttk.Frame(top)
-sent_frame.grid(row=2, column=1, columnspan=6, sticky="ew", pady=(6, 0))
+sent_frame.grid(row=3, column=1, columnspan=6, sticky="ew", pady=(6, 0))
 sent_entry = ttk.Entry(sent_frame, textvariable=sent_var)
 sent_entry.pack(side="left", fill="x", expand=True)
 sent_entry.bind("<FocusOut>", lambda e: set_setting("sentiment_dir", sent_var.get().strip()))
@@ -605,11 +624,11 @@ def _browse_sentiment_file():
 sent_btn = ttk.Button(sent_frame, text="浏览...", command=_browse_sentiment_file, width=6)
 sent_btn.pack(side="left", padx=(5, 0))
 
-# Row 3: 保存目录
-ttk.Label(top, text="保存目录:").grid(row=3, column=0, sticky="w", padx=(0, 5), pady=(6, 0))
+# Row 4: 保存目录
+ttk.Label(top, text="保存目录:").grid(row=4, column=0, sticky="w", padx=(0, 5), pady=(6, 0))
 save_var = tk.StringVar(value=get_setting("output_dir", "E:/etf-trader/output"))
 save_frame = ttk.Frame(top)
-save_frame.grid(row=3, column=1, columnspan=6, sticky="ew", pady=(6, 0))
+save_frame.grid(row=4, column=1, columnspan=6, sticky="ew", pady=(6, 0))
 save_entry = ttk.Entry(save_frame, textvariable=save_var)
 save_entry.pack(side="left", fill="x", expand=True)
 save_entry.bind("<FocusOut>", lambda e: set_setting("output_dir", save_var.get().strip()))
