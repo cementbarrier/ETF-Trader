@@ -1,18 +1,14 @@
 # -*- mode: python ; coding: utf-8 -*-
+from PyInstaller.utils.hooks import collect_submodules
 
+backend_hidden = collect_submodules('backend')
 
 a = Analysis(
     ['gui.py'],
     pathex=['.'],
     binaries=[],
     datas=[],
-    hiddenimports=[
-        'backend',
-        'backend.data_fetcher',
-        'backend.config_manager',
-        'backend.factor_engine',
-        'backend.llm_decision',
-        'backend.position_fetcher',
+    hiddenimports=backend_hidden + [
         'pystray',
         'pystray._win32',
         'pystray._base',
@@ -25,6 +21,19 @@ a = Analysis(
         'baostock',
         'akshare',
         'pandas',
+        'easytrader',
+        'pywinauto',
+        'requests',
+        'json',
+        'datetime',
+        'subprocess',
+        'threading',
+        'tkinter',
+        'sys',
+        'os',
+        'pathlib',
+        'typing',
+        'traceback',
     ],
     hookspath=[],
     hooksconfig={},
