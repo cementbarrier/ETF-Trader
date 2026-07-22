@@ -1,13 +1,18 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_submodules
+import akshare
+import os
 
 backend_hidden = collect_submodules('backend')
+
+# 动态定位 akshare 数据目录
+akshare_data = os.path.join(os.path.dirname(akshare.__file__), 'file_fold')
 
 a = Analysis(
     ['gui.py'],
     pathex=['.'],
     binaries=[],
-    datas=[],
+    datas=[(akshare_data, 'akshare/file_fold')],
     hiddenimports=backend_hidden + [
         'pystray',
         'pystray._win32',
