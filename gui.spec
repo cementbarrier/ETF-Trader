@@ -12,6 +12,8 @@ a = Analysis(
         'easytrader', 'pywinauto', 'win32api', 'baostock', 'akshare',
         'PIL', 'PIL.Image', 'PIL.ImageDraw',
         'pystray', 'pystray._win32', 'pystray._base',
+        'pystray._util', 'pystray._util.win32',
+        'six', 'six.moves.queue',
         'threading', 'queue',
     ],
     hookspath=[],
