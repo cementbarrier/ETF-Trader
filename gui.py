@@ -11,7 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 import tkinter as tk
-from tkinter import ttk, scrolledtext, messagebox
+from tkinter import ttk, scrolledtext, messagebox, filedialog
 
 from backend.config_manager import get_setting, set_setting, get_risk_params
 from backend.data_fetcher import fetch_etf_daily
@@ -374,10 +374,23 @@ btn.grid(row=1, column=6, padx=(15, 0), sticky="w", pady=(8, 0))
 # Row 2: 舆情目录
 ttk.Label(top, text="舆情目录:").grid(row=2, column=0, sticky="w", padx=(0, 5), pady=(6, 0))
 sent_var = tk.StringVar(value=get_setting("sentiment_dir", "E:/video2txt"))
-sent_entry = ttk.Entry(top, textvariable=sent_var, width=55)
-sent_entry.grid(row=2, column=1, columnspan=6, sticky="ew", pady=(6, 0))
+sent_frame = ttk.Frame(top)
+sent_frame.grid(row=2, column=1, columnspan=6, sticky="ew", pady=(6, 0))
+sent_entry = ttk.Entry(sent_frame, textvariable=sent_var)
+sent_entry.pack(side="left", fill="x", expand=True)
 sent_entry.bind("<FocusOut>", lambda e: set_setting("sentiment_dir", sent_var.get().strip()))
 sent_entry.bind("<Return>", lambda e: set_setting("sentiment_dir", sent_var.get().strip()))
+
+
+def _browse_sentiment_dir():
+    d = filedialog.askdirectory(initialdir=sent_var.get() or "E:/")
+    if d:
+        sent_var.set(d)
+        set_setting("sentiment_dir", d)
+
+
+sent_btn = ttk.Button(sent_frame, text="浏览...", command=_browse_sentiment_dir, width=6)
+sent_btn.pack(side="left", padx=(5, 0))
 
 # ── 持仓区 ──
 pos_frame = ttk.LabelFrame(root, text="持仓管理", padding=8)
